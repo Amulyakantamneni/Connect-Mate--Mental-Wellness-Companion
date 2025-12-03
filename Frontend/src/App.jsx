@@ -70,7 +70,7 @@ export default function App() {
 
     setTimeout(async () => {
       try {
-        const res = await fetch("https://connectmate-api.onrender.com/chat", {
+        const res = await fetch("https://connect-mate-mental-wellness-companion.onrender.com/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
