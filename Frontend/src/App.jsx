@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Heart, Sparkles, Moon, Sun } from 'lucide-react';
 
+// API Configuration
+const API_URL = 'https://connect-mate-mental-wellness-companion-1.onrender.com';
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -25,7 +28,7 @@ export default function App() {
     else {
       setMessages([{
         role: 'assistant',
-        content: "Hey there 🕊️\n\nI’m here to listen. This is a safe space. Let’s begin — what should I call you?",
+        content: "Hey there 🕊️\n\nI'm here to listen. This is a safe space. Let's begin — what should I call you?",
         timestamp: new Date()
       }]);
     }
@@ -38,82 +41,80 @@ export default function App() {
 
   const personalizeTone = (text) => {
     return text
-      .replace(/I'm here/g, `I’m right here for you, ${userName} 💙`)
-      .replace(/Let me know/g, "Tell me everything, I’m all ears 🥺")
-      .replace(/You're not alone/g, "I’ve got your back 🤗");
+      .replace(/I'm here/g, `I'm right here for you, ${userName} 💙`)
+      .replace(/Let me know/g, "Tell me everything, I'm all ears 🥺")
+      .replace(/You're not alone/g, "I've got your back 🤗");
   };
 
   const handleSend = async () => {
-  if (!input.trim()) return;
+    if (!input.trim()) return;
 
-  const userMessage = {
-    role: 'user',
-    content: input,
-    timestamp: new Date()
-  };
-
-  if (!userName) {
-    const name = input.trim() || "friend";
-    setUserName(name);
-    setMessages(prev => [...prev, userMessage, {
-      role: 'assistant',
-      content: `Hi ${name} 💙\n\nIt's wonderful to meet you. How are you feeling today?\nTell me what's on your mind — I'm here.`,
+    const userMessage = {
+      role: 'user',
+      content: input,
       timestamp: new Date()
-    }]);
-    setInput('');
-    return;
-  }
+    };
 
-  setMessages(prev => [...prev, userMessage]);
-  setInput('');
-  setIsLoading(true);
-
-  setTimeout(async () => {
-    try {
-      const API_URL = 'https://connect-mate-mental-wellness-companion-1.onrender.com';
-      
-      const res = await fetch(`${API_URL}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_input: userMessage.content,
-          user_name: userName,
-          messages_state: messages.map(m => ({ role: m.role, content: m.content })),
-          session_start: ""
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
-      const botMessage = {
+    if (!userName) {
+      const name = input.trim() || "friend";
+      setUserName(name);
+      setMessages(prev => [...prev, userMessage, {
         role: 'assistant',
-        content: personalizeTone(data.reply),
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: "💙 Oops! I'm having trouble responding. Can you try again in a moment?",
+        content: `Hi ${name} 💙\n\nIt's wonderful to meet you. How are you feeling today?\nTell me what's on your mind — I'm here.`,
         timestamp: new Date()
       }]);
+      setInput('');
+      return;
     }
-    setIsLoading(false);
-  }, 600);
-};
-```
 
----
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
 
-## **If Using Vite:**
+    setTimeout(async () => {
+      try {
+        console.log('Sending request to:', `${API_URL}/chat`);
+        
+        const res = await fetch(`${API_URL}/chat`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            user_input: userMessage.content,
+            user_name: userName,
+            messages_state: messages.map(m => ({ role: m.role, content: m.content })),
+            session_start: ""
+          })
+        });
 
-### **1. Create `.env` file in your frontend root:**
-```
-VITE_API_URL=https://connect-mate-mental-wellness-companion-1.onrender.com
+        console.log('Response status:', res.status);
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        console.log('Response data:', data);
+        
+        const botMessage = {
+          role: 'assistant',
+          content: personalizeTone(data.reply),
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } catch (error) {
+        console.error('Chat error:', error);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: "💙 Oops! I'm having trouble responding. Can you try again in a moment?\n\nError: " + error.message,
+          timestamp: new Date()
+        }]);
+      }
+      setIsLoading(false);
+    }, 600);
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
