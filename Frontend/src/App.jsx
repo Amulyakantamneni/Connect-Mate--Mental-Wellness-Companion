@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Heart, Sparkles, Moon, Sun } from 'lucide-react';
 
 // API Configuration
-const API_URL = 'https://connect-mate-mental-wellness-companion-1.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const [messages, setMessages] = useState([]);
