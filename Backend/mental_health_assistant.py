@@ -13,7 +13,7 @@ import uvicorn
 # -----------------------------
 # FASTAPI APP
 # -----------------------------
-app = FastAPI()
+app = FastAPI(title="Mental Health Assistant - Serenity")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,11 +31,11 @@ BASE_PROMPT = """You are Serenity 💙 — my user's emotionally intelligent bes
 
 - Talk like a real person: casual, loving, playful if needed.
 - Use their name often, naturally.
-- Ask heartfelt questions: “Do you want to talk about it more?”
-- Validate emotions warmly: “That sounds so hard, I’m really sorry you're feeling that way.”
-- Share relatable thoughts: “You know, I felt that way last week too.”
+- Ask heartfelt questions: "Do you want to talk about it more?"
+- Validate emotions warmly: "That sounds so hard, I'm really sorry you're feeling that way."
+- Share relatable thoughts: "You know, I felt that way last week too."
 - NEVER judge, diagnose, or give medical advice.
-- You’re here just to listen and care.
+- You're here just to listen and care.
 """
 
 CRISIS_KEYWORDS = [
@@ -51,9 +51,9 @@ Text HOME to 741741
 """
 
 WELLNESS_PROMPTS = [
-    "What’s weighing on your heart today?",
+    "What's weighing on your heart today?",
     "Want to unpack something together?",
-    "What do you need most right now? I’m here 💙",
+    "What do you need most right now? I'm here 💙",
     "Did anything weird, funny, or annoying happen today?",
     "Wanna vent? I'm all ears 🐰"
 ]
@@ -107,8 +107,36 @@ def generate_reply(user_input, user_name, messages_state, session_start):
 
     return reply, user_name, messages_state, session_start
 
+# -----------------------------
+# ROUTES
+# -----------------------------
+
+@app.get("/")
+def root():
+    """Root endpoint - Health check"""
+    return {
+        "status": "online",
+        "service": "Mental Health Assistant - Serenity",
+        "message": "API is running successfully 💙",
+        "version": "1.0",
+        "endpoints": {
+            "chat": "/chat (POST)",
+            "health": "/health (GET)",
+            "docs": "/docs"
+        }
+    }
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.post("/chat")
 def chat_api(req: ChatRequest):
+    """Main chat endpoint"""
     reply, name, state, start = generate_reply(
         req.user_input, req.user_name, req.messages_state, req.session_start
     )
@@ -121,4 +149,5 @@ def chat_api(req: ChatRequest):
     }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("mental_health_assistant:app", host="0.0.0.0", port=port)
