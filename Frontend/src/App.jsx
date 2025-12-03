@@ -44,61 +44,76 @@ export default function App() {
   };
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+  if (!input.trim()) return;
 
-    const userMessage = {
-      role: 'user',
-      content: input,
-      timestamp: new Date()
-    };
-
-    if (!userName) {
-      const name = input.trim() || "friend";
-      setUserName(name);
-      setMessages(prev => [...prev, userMessage, {
-        role: 'assistant',
-        content: `Hi ${name} 💙\n\nIt's wonderful to meet you. How are you feeling today?\nTell me what’s on your mind — I’m here.`,
-        timestamp: new Date()
-      }]);
-      setInput('');
-      return;
-    }
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    setTimeout(async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_input: userMessage.content,
-            user_name: userName,
-            messages_state: messages.map(m => ({ role: m.role, content: m.content })),
-            session_start: ""
-          })
-        });
-
-        const data = await res.json();
-        const botMessage = {
-          role: 'assistant',
-          content: personalizeTone(data.reply),
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
-      } catch {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: "💙 Oops! I’m having trouble responding. Can you try again in a moment?",
-          timestamp: new Date()
-        }]);
-      }
-      setIsLoading(false);
-    }, 600);
+  const userMessage = {
+    role: 'user',
+    content: input,
+    timestamp: new Date()
   };
 
+  if (!userName) {
+    const name = input.trim() || "friend";
+    setUserName(name);
+    setMessages(prev => [...prev, userMessage, {
+      role: 'assistant',
+      content: `Hi ${name} 💙\n\nIt's wonderful to meet you. How are you feeling today?\nTell me what's on your mind — I'm here.`,
+      timestamp: new Date()
+    }]);
+    setInput('');
+    return;
+  }
+
+  setMessages(prev => [...prev, userMessage]);
+  setInput('');
+  setIsLoading(true);
+
+  setTimeout(async () => {
+    try {
+      const API_URL = 'https://connect-mate-mental-wellness-companion-1.onrender.com';
+      
+      const res = await fetch(`${API_URL}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_input: userMessage.content,
+          user_name: userName,
+          messages_state: messages.map(m => ({ role: m.role, content: m.content })),
+          session_start: ""
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const botMessage = {
+        role: 'assistant',
+        content: personalizeTone(data.reply),
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "💙 Oops! I'm having trouble responding. Can you try again in a moment?",
+        timestamp: new Date()
+      }]);
+    }
+    setIsLoading(false);
+  }, 600);
+};
+```
+
+---
+
+## **If Using Vite:**
+
+### **1. Create `.env` file in your frontend root:**
+```
+VITE_API_URL=https://connect-mate-mental-wellness-companion-1.onrender.com
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
