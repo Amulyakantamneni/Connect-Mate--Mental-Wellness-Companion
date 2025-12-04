@@ -46,7 +46,7 @@ export default function App() {
     setShowWelcome(false);
     setMessages([{
       role: 'assistant',
-      content: `Hi ${userName} 💙\n\nIt's wonderful to meet you. I'm Serenity, your personal wellness companion. This is a safe, judgment-free space where you can share anything on your mind.\n\nHow are you feeling today?`,
+      content: `Hi ${userName} 💙\n\nIt's wonderful to meet you. I'm Nira, your personal wellness companion. This is a safe, judgment-free space where you can share anything on your mind.\n\nHow are you feeling today?`,
       timestamp: new Date()
     }]);
   };
@@ -163,9 +163,9 @@ export default function App() {
                   🎯 Our Purpose
                 </h4>
                 <ul className={`text-sm space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <li>• Bridge the gap between struggling and seeking help</li>
+                  <li>• When the world feels too loud, come here.</li>
                   <li>• Provide 24/7 emotional support without judgment</li>
-                  <li>• Reduce barriers to mental wellness resources</li>
+                  <li>• Nira is your space to finally let them out — safely, softly.</li>
                   <li>• Create a safe space for self-reflection</li>
                   <li>• Encourage healthy conversations about mental health</li>
                 </ul>
@@ -185,7 +185,7 @@ export default function App() {
                   🛡️ Built with Care
                 </h4>
                 <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Created by Amulya with empathy and understanding. Every feature is designed with your wellbeing in mind - from secure local storage to crisis detection that connects you with real help when needed.
+                  Created by AK with empathy and understanding. Every feature is designed with your wellbeing in mind - from secure local storage to crisis detection that connects you with real help when needed.
                 </p>
               </div>
             </div>
@@ -209,7 +209,7 @@ export default function App() {
                 Thank you for trusting ConnectMate with your thoughts 💜
               </p>
               <p className={`text-xs mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                Version 1.0 • Built with care by Amulya
+                Version 1.0 • Built with care by AK
               </p>
             </div>
           </div>
@@ -353,7 +353,7 @@ export default function App() {
 
             <div className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
               <p>Version 1.0</p>
-              <p className="mt-1">Built with 💜 by Amulya</p>
+              <p className="mt-1">Built with 💜 by AK</p>
             </div>
           </div>
         </div>
