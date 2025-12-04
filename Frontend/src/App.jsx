@@ -1,17 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Heart, Sparkles, Moon, Sun } from 'lucide-react';
+import { Send, Heart, Moon, Sun, Menu, Settings, MessageCircle, Info, LogOut, Sparkles, Shield } from 'lucide-react';
 
-// API Configuration
-console.log("Backend API URL:", import.meta.env.VITE_API_URL);
-const API_URL = import.meta.env?.VITE_API_URL || 'https://connect-mate-mental-wellness-companion-1.onrender.com';
-
+const API_URL = 'https://connect-mate-mental-wellness-companion-1.onrender.com';
 
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [userName, setUserName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -25,27 +24,30 @@ export default function App() {
   useEffect(() => {
     const savedName = localStorage.getItem("connectmate_name");
     const savedMsgs = JSON.parse(localStorage.getItem("connectmate_msgs") || "[]");
-    if (savedName) setUserName(savedName);
-    if (savedMsgs.length) setMessages(savedMsgs);
-    else {
-      setMessages([{
-        role: 'assistant',
-        content: "Hey there 🕊️\n\nI'm here to listen. This is a safe space. Let's begin — what should I call you?",
-        timestamp: new Date()
-      }]);
+    const savedTheme = localStorage.getItem("connectmate_theme");
+    
+    if (savedTheme) setDarkMode(savedTheme === 'dark');
+    if (savedName) {
+      setUserName(savedName);
+      setShowWelcome(false);
     }
+    if (savedMsgs.length) setMessages(savedMsgs);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("connectmate_name", userName);
+    if (userName) localStorage.setItem("connectmate_name", userName);
     localStorage.setItem("connectmate_msgs", JSON.stringify(messages));
-  }, [messages, userName]);
+    localStorage.setItem("connectmate_theme", darkMode ? 'dark' : 'light');
+  }, [messages, userName, darkMode]);
 
-  const personalizeTone = (text) => {
-    return text
-      .replace(/I'm here/g, `I'm right here for you, ${userName} 💙`)
-      .replace(/Let me know/g, "Tell me everything, I'm all ears 🥺")
-      .replace(/You're not alone/g, "I've got your back 🤗");
+  const handleStartChat = () => {
+    if (!userName.trim()) return;
+    setShowWelcome(false);
+    setMessages([{
+      role: 'assistant',
+      content: `Hi ${userName} 💙\n\nIt's wonderful to meet you. I'm Serenity, your personal wellness companion. This is a safe, judgment-free space where you can share anything on your mind.\n\nHow are you feeling today?`,
+      timestamp: new Date()
+    }]);
   };
 
   const handleSend = async () => {
@@ -57,31 +59,15 @@ export default function App() {
       timestamp: new Date()
     };
 
-    if (!userName) {
-      const name = input.trim() || "friend";
-      setUserName(name);
-      setMessages(prev => [...prev, userMessage, {
-        role: 'assistant',
-        content: `Hi ${name} 💙\n\nIt's wonderful to meet you. How are you feeling today?\nTell me what's on your mind — I'm here.`,
-        timestamp: new Date()
-      }]);
-      setInput('');
-      return;
-    }
-
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     setTimeout(async () => {
       try {
-        console.log('Sending request to:', `${API_URL}/chat`);
-        
         const res = await fetch(`${API_URL}/chat`, {
           method: "POST",
-          headers: { 
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_input: userMessage.content,
             user_name: userName,
@@ -90,18 +76,12 @@ export default function App() {
           })
         });
 
-        console.log('Response status:', res.status);
-
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
         const data = await res.json();
-        console.log('Response data:', data);
-        
         const botMessage = {
           role: 'assistant',
-          content: personalizeTone(data.reply),
+          content: data.reply,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, botMessage]);
@@ -109,12 +89,12 @@ export default function App() {
         console.error('Chat error:', error);
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: "💙 Oops! I'm having trouble responding. Can you try again in a moment?\n\nError: " + error.message,
+          content: "💙 I'm having trouble connecting right now. Please try again in a moment.",
           timestamp: new Date()
         }]);
       }
       setIsLoading(false);
-    }, 600);
+    }, 800);
   };
 
   const handleKeyPress = (e) => {
@@ -124,53 +104,221 @@ export default function App() {
     }
   };
 
-  return (
-    <div className={`min-h-screen ${darkMode ? 'bg-slate-900' : 'bg-gradient-to-br from-violet-50 to-pink-50'}`}>
-      <div className="max-w-4xl mx-auto h-screen flex flex-col p-4">
-        {/* Header */}
-        <div className={`rounded-3xl p-6 backdrop-blur-xl mb-4 shadow-xl border ${darkMode ? 'bg-slate-800/70 border-slate-700' : 'bg-white/70 border-white'}`}>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <Heart className={`w-7 h-7 ${darkMode ? 'text-purple-300' : 'text-purple-600'} animate-pulse`} />
+  const handleNewChat = () => {
+    if (confirm('Start a new conversation? Your current chat will be saved.')) {
+      setMessages([]);
+      setShowMenu(false);
+    }
+  };
+
+  const handleLogout = () => {
+    if (confirm('Log out? Your chat history will be cleared.')) {
+      localStorage.clear();
+      setUserName('');
+      setMessages([]);
+      setShowWelcome(true);
+      setShowMenu(false);
+    }
+  };
+
+  if (showWelcome) {
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' : 'bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50'} flex items-center justify-center p-6`}>
+        <div className={`max-w-2xl w-full ${darkMode ? 'bg-slate-800/90' : 'bg-white/90'} backdrop-blur-xl rounded-3xl shadow-2xl p-12 border ${darkMode ? 'border-purple-500/20' : 'border-purple-200'}`}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-6 shadow-lg">
+              <Heart className="w-10 h-10 text-white animate-pulse" />
+            </div>
+            <h1 className={`text-4xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Welcome to ConnectMate
+            </h1>
+            <p className={`text-lg ${darkMode ? 'text-purple-200' : 'text-purple-600'} mb-2`}>
+              Your Personal Mental Wellness Companion
+            </p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              A safe space to share, reflect, and find support 💜
+            </p>
+          </div>
+
+          <div className="space-y-6 mb-8">
+            <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700/50' : 'bg-purple-50'} flex items-start gap-3`}>
+              <Shield className={`w-5 h-5 mt-0.5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
               <div>
-                <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  ConnectMate — Your Mental Wellness Buddy
+                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Private & Secure</h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Your conversations are confidential and stored locally</p>
+              </div>
+            </div>
+            <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700/50' : 'bg-purple-50'} flex items-start gap-3`}>
+              <MessageCircle className={`w-5 h-5 mt-0.5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              <div>
+                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>24/7 Support</h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>I'm here whenever you need someone to talk to</p>
+              </div>
+            </div>
+            <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700/50' : 'bg-purple-50'} flex items-start gap-3`}>
+              <Sparkles className={`w-5 h-5 mt-0.5 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              <div>
+                <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>AI-Powered Empathy</h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Thoughtful, caring responses powered by advanced AI</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleStartChat()}
+              placeholder="What should I call you?"
+              className={`w-full px-6 py-4 rounded-xl outline-none text-center text-lg ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400 border border-purple-500/30' : 'bg-gray-50 text-gray-900 placeholder-gray-400 border-2 border-purple-200'} focus:ring-4 focus:ring-purple-500/20`}
+            />
+            <button
+              onClick={handleStartChat}
+              disabled={!userName.trim()}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              Start Your Journey
+            </button>
+          </div>
+
+          <p className={`text-xs text-center mt-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            💙 Not a replacement for professional mental health care. In crisis? Call 988 or text HOME to 741741
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900' : 'bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50'}`}>
+      {/* Sidebar Menu */}
+      {showMenu && (
+        <div className="fixed inset-0 z-50 flex">
+          <div 
+            className="flex-1 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowMenu(false)}
+          />
+          <div className={`w-80 ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-2xl p-6 space-y-6 overflow-y-auto`}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Menu</h2>
+              <button onClick={() => setShowMenu(false)} className={`p-2 rounded-lg ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-100'}`}>
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={handleNewChat}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl ${darkMode ? 'hover:bg-slate-700 text-white' : 'hover:bg-gray-100 text-gray-900'} transition-colors text-left`}
+              >
+                <MessageCircle className="w-5 h-5" />
+                New Conversation
+              </button>
+              
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl ${darkMode ? 'hover:bg-slate-700 text-white' : 'hover:bg-gray-100 text-gray-900'} transition-colors text-left`}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {darkMode ? 'Light Mode' : 'Dark Mode'}
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl ${darkMode ? 'hover:bg-red-900/20 text-red-400' : 'hover:bg-red-50 text-red-600'} transition-colors text-left`}
+              >
+                <LogOut className="w-5 h-5" />
+                Log Out
+              </button>
+            </div>
+
+            <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700/50' : 'bg-purple-50'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Heart className="w-4 h-4 text-purple-500" />
+                <h3 className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>About ConnectMate</h3>
+              </div>
+              <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Your AI wellness companion, here to listen and support you 24/7. Remember, I'm here to help, but I'm not a replacement for professional care.
+              </p>
+            </div>
+
+            <div className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              <p>Version 1.0</p>
+              <p className="mt-1">Built with 💜 by Amulya</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-5xl mx-auto h-screen flex flex-col">
+        {/* Header */}
+        <div className={`${darkMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-xl border-b ${darkMode ? 'border-slate-700' : 'border-purple-100'} shadow-lg`}>
+          <div className="flex items-center justify-between p-4">
+            <button
+              onClick={() => setShowMenu(true)}
+              className={`p-2 rounded-xl ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-100'} transition-colors`}
+            >
+              <Menu className={`w-6 h-6 ${darkMode ? 'text-white' : 'text-gray-900'}`} />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <Heart className="w-5 h-5 text-white animate-pulse" />
+              </div>
+              <div>
+                <h1 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  ConnectMate
                 </h1>
-                <p className={`text-sm ${darkMode ? 'text-purple-200' : 'text-purple-600'}`}>
-                  A friend who listens, anytime 💜
+                <p className={`text-xs ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>
+                  with {userName}
                 </p>
               </div>
             </div>
-            <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-full hover:scale-110 transition">
-              {darkMode ? <Sun className="text-yellow-300" /> : <Moon className="text-gray-700" />}
+
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-xl ${darkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-100'} transition-colors`}
+            >
+              {darkMode ? <Sun className="w-6 h-6 text-yellow-300" /> : <Moon className="w-6 h-6 text-gray-700" />}
             </button>
           </div>
-          {userName && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-purple-600 dark:text-purple-300">
-              <Sparkles className="w-4 h-4" /> Chatting with {userName}
-            </div>
-          )}
         </div>
 
-        {/* Chat Area */}
-        <div className={`flex-1 overflow-y-auto space-y-4 px-4 py-6 rounded-xl border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white/50 border-white'}`}>
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 && (
+            <div className="text-center py-20">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
+                <MessageCircle className="w-8 h-8 text-white" />
+              </div>
+              <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Start a conversation
+              </h3>
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                I'm here to listen. Share what's on your mind.
+              </p>
+            </div>
+          )}
+
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-              <div className={`max-w-[75%] p-4 rounded-2xl shadow-md ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : darkMode ? 'bg-slate-700 text-white' : 'bg-white text-gray-800'}`}>
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+              <div className={`max-w-[80%] ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : darkMode ? 'bg-slate-700/80 text-white' : 'bg-white text-gray-800'} p-5 rounded-2xl shadow-lg`}>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                 <span className="text-xs opacity-60 mt-2 block">
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>
           ))}
+
           {isLoading && (
             <div className="flex justify-start">
-              <div className="flex gap-2 items-center bg-purple-100 dark:bg-purple-700 p-3 rounded-2xl animate-pulse">
+              <div className={`flex gap-2 items-center ${darkMode ? 'bg-slate-700/80' : 'bg-white'} p-4 rounded-2xl shadow-lg`}>
                 <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-150" />
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce delay-300" />
-                <span className="text-sm ml-2 text-purple-600 dark:text-purple-200">Typing...</span>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                <span className={`text-sm ml-2 ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Typing...</span>
               </div>
             </div>
           )}
@@ -178,26 +326,28 @@ export default function App() {
         </div>
 
         {/* Input Area */}
-        <div className={`p-4 mt-4 rounded-3xl shadow-xl border backdrop-blur-xl ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/70 border-white'}`}>
-          <div className="flex gap-3">
-            <input
-              className={`flex-1 rounded-2xl px-5 py-4 outline-none text-sm ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400' : 'bg-gray-50 text-gray-800 placeholder-gray-400'}`}
-              placeholder={userName ? "Type your thoughts…" : "What should I call you? 💙"}
+        <div className={`${darkMode ? 'bg-slate-800/80' : 'bg-white/80'} backdrop-blur-xl border-t ${darkMode ? 'border-slate-700' : 'border-purple-100'} p-4 shadow-2xl`}>
+          <div className="flex gap-3 items-end">
+            <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
+              placeholder="Share your thoughts..."
               disabled={isLoading}
+              rows={1}
+              className={`flex-1 px-5 py-4 rounded-2xl outline-none resize-none ${darkMode ? 'bg-slate-700 text-white placeholder-gray-400 border border-slate-600' : 'bg-gray-50 text-gray-900 placeholder-gray-400 border-2 border-purple-200'} focus:ring-4 focus:ring-purple-500/20 transition-all`}
+              style={{ minHeight: '56px', maxHeight: '120px' }}
             />
             <button
               onClick={handleSend}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-5 py-4 rounded-2xl shadow-lg hover:scale-105 transition disabled:opacity-50"
               disabled={isLoading || !input.trim()}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              <Send />
+              <Send className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-xs mt-3 text-center text-gray-500 dark:text-gray-400">
-            💙 Not a substitute for professional help. If you're in crisis, please contact emergency services.
+          <p className={`text-xs text-center mt-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            💙 In crisis? Call 988 or text HOME to 741741 • Not a substitute for professional help
           </p>
         </div>
       </div>
@@ -208,7 +358,7 @@ export default function App() {
           to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
+          animation: fade-in 0.4s ease-out;
         }
       `}</style>
     </div>
