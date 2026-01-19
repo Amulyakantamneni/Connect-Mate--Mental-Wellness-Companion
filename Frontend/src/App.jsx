@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Heart, Moon, Sun, Menu, Settings, MessageCircle, Info, LogOut, Sparkles, Shield } from 'lucide-react';
 
-const API_URL = 'https://connect-mate-mental-wellness-companion-1.onrender.com';
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+const CHAT_ENDPOINT = `${API_URL || ""}/chat`;
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -64,38 +65,36 @@ export default function App() {
     setInput('');
     setIsLoading(true);
 
-    setTimeout(async () => {
-      try {
-        const res = await fetch(`${API_URL}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_input: userMessage.content,
-            user_name: userName,
-            messages_state: messages.map(m => ({ role: m.role, content: m.content })),
-            session_start: ""
-          })
-        });
+    try {
+      const res = await fetch(CHAT_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_input: userMessage.content,
+          user_name: userName,
+          messages_state: messages.map(m => ({ role: m.role, content: m.content })),
+          session_start: ""
+        })
+      });
 
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-        const data = await res.json();
-        const botMessage = {
-          role: 'assistant',
-          content: data.reply,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botMessage]);
-      } catch (error) {
-        console.error('Chat error:', error);
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: "💙 I'm having trouble connecting right now. Please try again in a moment.",
-          timestamp: new Date()
-        }]);
-      }
-      setIsLoading(false);
-    }, 800);
+      const data = await res.json();
+      const botMessage = {
+        role: 'assistant',
+        content: data.reply,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "💙 I'm having trouble connecting right now. Please try again in a moment.",
+        timestamp: new Date()
+      }]);
+    }
+    setIsLoading(false);
   };
 
   const handleKeyPress = (e) => {
