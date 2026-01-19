@@ -71,6 +71,19 @@ def init_messages(name):
     prompt = SYSTEM_PROMPT + f"\n\nTheir name is {name}. Use it naturally sometimes."
     return [{"role": "system", "content": prompt}]
 
+def ensure_system_prompt(user_name, messages_state):
+    if not isinstance(messages_state, list):
+        messages_state = []
+    has_system = any(
+        isinstance(msg, dict) and msg.get("role") == "system"
+        for msg in messages_state
+    )
+    if not has_system:
+        messages_state = init_messages(user_name) + [
+            msg for msg in messages_state if isinstance(msg, dict)
+        ]
+    return messages_state
+
 def generate_reply(user_input, user_name, messages_state):
     if not user_name:
         user_name = user_input.strip() or "friend"
@@ -86,6 +99,8 @@ I'm Serenity - basically your digital bestie 💗
 {question}"""
 
         return reply, user_name, messages_state
+
+    messages_state = ensure_system_prompt(user_name, messages_state)
 
     if detect_crisis(user_input):
         messages_state.append({"role": "user", "content": user_input})
